@@ -1,0 +1,120 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr 30 18:38:26 2018
+
+@author: Hp
+"""
+import cv2
+import numpy as np
+from matplotlib import pyplot as plt
+green = (0,255,255)
+
+def overlay_mask(mask, image):
+    # make the mask rgb
+    rgb_mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+    # calculates the weightes sum of two arrays. in our case image arrays
+    # input, how much to weight each.
+    # optional depth value set to 0 no need
+    img = cv2.addWeighted(rgb_mask, 0.5, image, 0.5, 0)
+    return img
+
+def show(image):
+  # Figure size in inches
+  plt.figure(figsize=(10, 10))
+
+  # Show image, with nearest neighbour interpolation
+  plt.imshow(image, interpolation='nearest')
+
+def circle_contour(image, contour):
+    # Bounding ellipse
+    image_c = image.copy()
+    # easy function
+    rect = cv2.minAreaRect(contour)
+    #ellipse = cv2.fitEllipse(contour)
+    box = cv2.boxPoints(rect)
+    box = np.int0(box)
+    # add it
+    cv2.drawContours(image_c,[box],0,(0,0,255),3)
+    #cv2.ellipse(image_with_ellipse, ellipse, green, 2, cv2.LINE_AA)
+    return image_c
+
+def find_biggest_contour(image):
+    # Copy
+    image = image.copy()
+    # input, gives all the contours, contour approximation compresses horizontal,
+    # vertical, and diagonal segments and leaves only their end points. For example,
+    # an up-right rectangular contour is encoded with 4 points.
+    # Optional output vector, containing information about the image topology.
+    # It has as many elements as the number of contours.
+    # we dont need it
+    image, contours, hierarchy = cv2.findContours(image, cv2.RETR_LIST,
+                                                  cv2.CHAIN_APPROX_SIMPLE)
+
+    # Isolate largest contour
+    contour_sizes = [(cv2.contourArea(contour), contour) for contour in
+                     contours]
+    biggest_contour = max(contour_sizes, key=lambda x: x[0])[1]
+    mask = np.zeros(image.shape, np.uint8)
+    cv2.drawContours(mask, [biggest_contour], -1, 255, -1)
+    return biggest_contour, mask
+
+    
+cap = cv2.imread("Lobesia.jpg")
+#cap = cv2.VideoCapture(0)
+while(1):
+
+    # Take each frame
+    #resising
+    #_, frame_o = cap.read()
+    frame_o = cap
+    frame_gaussian = cv2.GaussianBlur(frame_o,(7,7),0)
+    max_d = max(frame_gaussian.shape)
+    scale = 700/max_d
+    frame = cv2.resize(frame_gaussian,None,fx=scale,fy=scale)
+    # Convert BGR to HSV
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # define range of blue color in HSV
+    #lower_blue = np.array([110,50,50])
+    #upper_blue = np.array([130,255,255])
+
+    lower_green = np.array([30, 30, 30])
+    upper_green = np.array([140, 255, 255]) 
+    # Threshold the HSV image to get only blue colors
+    green_mask = cv2.inRange(hsv, lower_green, upper_green) # I have the Green threshold image.
+
+    # Threshold the HSV image to get only blue colors
+    #blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
+    mask = green_mask
+    #Clean up
+    # we want to circle our strawberry so we'll circle it with an ellipse
+    # with a shape of 15x15
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    # morph the image. closing operation Dilation followed by Erosion.
+    # It is useful in closing small holes inside the foreground objects,
+    # or small black points on the object.
+    mask_closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    # erosion followed by dilation. It is useful in removing noise
+    mask_clean = cv2.morphologyEx(mask_closed, cv2.MORPH_OPEN, kernel)
+    big_bug_contour, mask_bug = find_biggest_contour(
+        255-mask_clean)
+    overlay = overlay_mask(mask_clean, frame)
+    circled = circle_contour(frame, big_bug_contour)
+    #frame per overlay
+    #show(circled)
+    #bgr = cv2.cvtColor(circled, cv2.COLOR_RGB2BGR)
+
+    # Bitwise-AND mask and original image
+    res = cv2.bitwise_and(frame,frame, mask= mask_clean)
+    
+    cv2.imshow('frame',frame_gaussian)
+    cv2.imshow('frame',frame)
+    cv2.imshow('mask',255-mask_clean)
+    cv2.imshow('res',circled)
+    
+    k = cv2.waitKey(5) & 0xFF
+    if k == 27:
+        break
+
+cv2.destroyAllWindows()
+sys.exit()
