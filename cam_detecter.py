@@ -94,7 +94,7 @@ def scale_image(frame):
     return frame_o
 
 def anomaly_contour(mask,frame):
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     mask_closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
     mask_clean = cv2.morphologyEx(mask_closed, cv2.MORPH_OPEN, kernel)
     big_bug_contour, mask_bug = find_biggest_contour(
@@ -142,6 +142,6 @@ def video_processing():
 
 
 if __name__ == "__main__":
-    path = "Lobesia.jpg"
+    path = "dada4.jpg"
     image_processing(path)
     video_processing()
