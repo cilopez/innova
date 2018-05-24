@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
+
 green = (0,255,255)
 
 def contador():
@@ -142,6 +143,6 @@ def video_processing():
 
 
 if __name__ == "__main__":
-    path = "dada4.jpg"
+    path = "images/dada4.jpg"
     image_processing(path)
     video_processing()
