@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import time
 import os
 import copy
+import cam_detecter
 
 PATH =os.path.join(os.getcwd(),"model.pt")
 
@@ -38,6 +39,7 @@ dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
               for x in ['train', 'val']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
 class_names = image_datasets['train'].classes
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 def imshow(inp, title=None):
@@ -119,33 +121,47 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     model.load_state_dict(best_model_wts)
     return model
 
-def visualize_model(model, num_images=2):
+def visualize_model(model, num_images=1):
     was_training = model.training
     model.eval()
     images_so_far = 0
-    fig = plt.figure()
-
+    #fig = plt.figure()
     with torch.no_grad():
         for i, (inputs, labels) in enumerate(dataloaders['val']):
             inputs = inputs.to(device)
             labels = labels.to(device)
-
             outputs = model(inputs)
             _, preds = torch.max(outputs, 1)
+            #    images_so_far += 1
+            #    #ax = plt.subplot(num_images, 1, images_so_far)
+            #    #ax.axis('off')
+            #    #ax.set_title('predicted: {}'.format(class_names[preds[j]]))
+            #    #imshow(inputs.cpu().data[j])
 
-            for j in range(inputs.size()[0]):
-                images_so_far += 1
-                ax = plt.subplot(num_images//2, 2, images_so_far)
-                ax.axis('off')
-                ax.set_title('predicted: {}'.format(class_names[preds[j]]))
-                imshow(inputs.cpu().data[j])
+            #    if images_so_far == num_images:
+            model.train(mode=was_training)
+            return class_names[preds[0]]
+        
+def image_read(model):
+    was_training = model.training
+    model.eval()
+    with torch.no_grad():
+        for i, (inputs, labels) in enumerate(dataloaders['val']):
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+            model.train(mode=was_training)
+            return class_names[preds[0]]
 
-                if images_so_far == num_images:
-                    model.train(mode=was_training)
-                    return
-        model.train(mode=was_training)
-
-
+def running():
+    model_ft = torch.load(PATH)
+    if image_read(model_ft) == "insect":
+        image_path = "dataset/val/data/"
+        file = os.listdir(image_path)
+        cam_detecter.image_processing(os.path.join(image_path,file[0]))
+        return "insect"
+    return "leaf"
 
 # Get a batch of training data
 if __name__ == "__main__":
@@ -155,7 +171,6 @@ if __name__ == "__main__":
         # Make a grid from batch
         out = torchvision.utils.make_grid(inputs)
         #imshow(out, title=[class_names[x] for x in classes])
-        plt.savefig('res.png')
         model_ft = models.resnet18(pretrained=True)
         num_ftrs = model_ft.fc.in_features
         model_ft.fc = nn.Linear(num_ftrs, 2)
@@ -174,6 +189,10 @@ if __name__ == "__main__":
         torch.save(model_ft,PATH)
     else:
         model_ft = torch.load(PATH)
-    visualize_model(model_ft)
-    plt.ioff()
-    plt.show()
+        if image_read(model_ft) == "insect":
+            image_path = "dataset/val/data/"
+            file = os.listdir(image_path)
+            print(os.path.join(image_path,file[0]))
+            cam_detecter.image_processing(os.path.join(image_path,file[0]))
+    #plt.ioff()
+    #plt.show()

@@ -115,8 +115,8 @@ def image_processing(path):
     green_mask = cv2.inRange(hsv, lower_green,upper_green)
     mask = green_mask
     a, b, c, d = anomaly_contour(mask,frame)
-    cv2.imwrite('mask_{}'.format(path), 255 - d)
-    cv2.imwrite('res_{}'.format(path), c)
+    #cv2.imwrite('mask.jpeg', 255 - d)
+    cv2.imwrite('res.jpg', c)
 
 def video_processing():
     cap = cv2.VideoCapture(0)
@@ -143,6 +143,6 @@ def video_processing():
 
 
 if __name__ == "__main__":
-    path = "images/dada4.jpg"
+    path = "dataset/val/data/images.jpg"
     image_processing(path)
     video_processing()
